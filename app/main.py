@@ -154,7 +154,10 @@ def extensions_bulk_apply():
         config = load_config()
         return jsonify(apply_bulk(config))
     except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({
+            "error": str(exc) or repr(exc),
+            "error_type": exc.__class__.__name__,
+        }), 500
 
 
 @app.route("/api/users/preview", methods=["GET"])
