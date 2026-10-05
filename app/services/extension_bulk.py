@@ -52,12 +52,16 @@ def target_rows():
 def _existing_phones(config):
     rows = run_readonly_query(
         config,
-        "SELECT extension, server_ip FROM phones "
+        "SELECT extension, server_ip, fullname, user_group FROM phones "
         "WHERE extension LIKE '161%' OR extension LIKE '162%'",
         "master",
     )
     return {
-        row[0]: row[1]
+        row[0]: {
+            "server_ip": row[1],
+            "fullname": row[2] if len(row) > 2 else "",
+            "user_group": row[3] if len(row) > 3 else "",
+        }
         for row in rows
         if len(row) >= 2
     }
@@ -71,6 +75,7 @@ def build_bulk_plan(config):
     conflicts = []
     create_count = 0
     exists_count = 0
+    update_count = 0
     skipped_count = 0
 
     for row in targets:
@@ -83,13 +88,21 @@ def build_bulk_plan(config):
                 current_server = None
             else:
                 variant = extension_for_node(config, base, node_name)
-                current_server = existing.get(variant)
+                current = existing.get(variant)
+                current_server = current.get("server_ip") if current else None
                 if not node.get("enabled", True):
                     status = "SKIP_DISABLED"
                     skipped_count += 1
                 elif current_server == node.get("lan_ip"):
-                    status = "EXISTS"
-                    exists_count += 1
+                    if (
+                        current.get("fullname") != base
+                        or current.get("user_group") != row["user_group"]
+                    ):
+                        status = "UPDATE_METADATA"
+                        update_count += 1
+                    else:
+                        status = "EXISTS"
+                        exists_count += 1
                 elif current_server:
                     status = "CONFLICT"
                     conflicts.append({
@@ -124,6 +137,7 @@ def build_bulk_plan(config):
         "phone_target_count": len(targets) * len(NODE_ORDER),
         "create_count": create_count,
         "exists_count": exists_count,
+        "update_count": update_count,
         "skipped_count": skipped_count,
         "conflict_count": len(conflicts),
         "write_ready": len(conflicts) == 0,
@@ -133,7 +147,9 @@ def build_bulk_plan(config):
     }
 
 
-def _build_insert_with_columns(columns, target_extension, server_ip):
+def _build_insert_with_columns(
+    columns, target_extension, base_extension, server_ip, user_group
+):
     values = []
     for column in columns:
         if column in (
@@ -142,10 +158,13 @@ def _build_insert_with_columns(columns, target_extension, server_ip):
             "voicemail_id",
             "login",
             "pass",
-            "fullname",
             "outbound_cid",
         ):
             values.append(_literal(target_extension))
+        elif column == "fullname":
+            values.append(_literal(base_extension))
+        elif column == "user_group":
+            values.append(_literal(user_group))
         elif column == "server_ip":
             values.append(_literal(server_ip))
         elif column in ("phone_ip", "computer_ip"):
@@ -182,13 +201,35 @@ def _run_insert_chunks(config, create_items, chunk_size=10):
                 _build_insert_with_columns(
                     columns,
                     item["extension"],
+                    item["base_extension"],
                     item["server_ip"],
+                    item["user_group"],
                 )
             )
         statements.append("COMMIT")
         run_write_script(config, ";\n".join(statements) + ";", "master")
         created += len(chunk)
     return created
+
+
+def _update_existing_metadata(config, update_items):
+    if not update_items:
+        return 0
+
+    statements = ["START TRANSACTION"]
+    for item in update_items:
+        statements.append(
+            "UPDATE phones SET fullname={fullname}, user_group={user_group} "
+            "WHERE extension={extension} AND server_ip={server_ip}".format(
+                fullname=_literal(item["base_extension"]),
+                user_group=_literal(item["user_group"]),
+                extension=_literal(item["extension"]),
+                server_ip=_literal(item["server_ip"]),
+            )
+        )
+    statements.append("COMMIT")
+    run_write_script(config, ";\n".join(statements) + ";", "master")
+    return len(update_items)
 
 
 def _verify_node_peers(config, node_name, expected):
@@ -255,7 +296,12 @@ def apply_bulk(config):
         item for item in plan["items"]
         if item["status"] == "CREATE"
     ]
+    update_items = [
+        item for item in plan["items"]
+        if item["status"] == "UPDATE_METADATA"
+    ]
 
+    updated = _update_existing_metadata(config, update_items)
     created = _run_insert_chunks(config, create_items) if create_items else 0
 
     rebuild_ips = sorted(set(
@@ -298,12 +344,14 @@ def apply_bulk(config):
     return {
         "base_count": len(targets),
         "created": created,
+        "updated_metadata": updated,
         "rebuild_ok": rebuild_ok,
         "reload": reload_results,
         "verify": verify_results,
         "plan_after": {
             "create_count": after["create_count"],
             "exists_count": after["exists_count"],
+            "update_count": after["update_count"],
             "skipped_count": after["skipped_count"],
             "conflict_count": after["conflict_count"],
             "write_ready": after["write_ready"],
@@ -311,6 +359,7 @@ def apply_bulk(config):
         "ok": (
             rebuild_ok
             and after["create_count"] == 0
+            and after["update_count"] == 0
             and after["conflict_count"] == 0
             and all(
                 item.get("status") in ("OK", "SKIP_DISABLED")
