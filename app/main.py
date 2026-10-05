@@ -9,6 +9,7 @@ from flask import Flask, jsonify, render_template, request
 
 from app.config import load_config
 from app.services.user_groups import get_user_groups
+from app.services.users import propose_username
 
 app = Flask(
     __name__,
@@ -66,6 +67,24 @@ def user_groups():
                 "source": "master",
             }
         )
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/users/preview", methods=["GET"])
+def user_preview():
+    try:
+        config = load_config()
+        result = propose_username(
+            config,
+            request.args.get("first_name", ""),
+            request.args.get("second_name", ""),
+            request.args.get("paternal_surname", ""),
+            request.args.get("maternal_surname", ""),
+        )
+        return jsonify(result)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
