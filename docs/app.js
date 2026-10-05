@@ -139,7 +139,7 @@ function loadUsernamePreview() {
   document.getElementById(id).addEventListener("input", schedulePreview);
 });
 
-function loadGroupPlan() {
+var lastGroupPlan = null;\n\nfunction loadGroupPlan() {
   var status = document.getElementById("groupPlanStatus");
   var body = document.getElementById("groupPlanBody");
   status.textContent = "Comparando contra MASTER…";
@@ -180,6 +180,48 @@ function loadGroupPlan() {
     });
 }
 
+function applyGroupPlan() {
+  if (!lastGroupPlan || !lastGroupPlan.create_count) {
+    return;
+  }
+
+  var message =
+    "Se crearán " + lastGroupPlan.create_count +
+    " User Groups directamente en VICIdial MASTER. " +
+    "CC-LIBERTAD-CORTIZO NO se eliminará todavía. ¿Continuar?";
+
+  if (!window.confirm(message)) {
+    return;
+  }
+
+  var button = document.getElementById("applyGroupPlan");
+  var status = document.getElementById("groupPlanStatus");
+  button.disabled = true;
+  status.textContent = "Creando User Groups en MASTER…";
+
+  fetch(apiUrl("user-groups/apply?confirm=CREATE_USER_GROUPS"), {
+    method: "POST",
+    cache: "no-store"
+  })
+    .then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+        return data;
+      });
+    })
+    .then(function (data) {
+      status.textContent =
+        "Listo: " + data.created + " User Groups creados en VICIdial.";
+      loadGroupPlan();
+      loadGroups();
+    })
+    .catch(function (error) {
+      status.textContent = "Error al crear grupos: " + error.message;
+      button.disabled = false;
+    });
+}
+
+document.getElementById("applyGroupPlan").addEventListener("click", applyGroupPlan);
 document.getElementById("loadGroupPlan").addEventListener("click", loadGroupPlan);
 document.getElementById("reloadGroups").addEventListener("click", loadGroups);
 
