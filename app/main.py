@@ -1,8 +1,7 @@
 from flask import Flask, jsonify
 
 from app.config import load_config
-from app.db import run_readonly_query
-from app.services.user_groups import get_user_groups_sql, parse_user_groups
+from app.services.user_groups import get_user_groups
 
 app = Flask(__name__)
 
@@ -27,11 +26,11 @@ def nodes():
 def user_groups():
     try:
         config = load_config()
-        rows = run_readonly_query(config, get_user_groups_sql(), "master")
+        groups = get_user_groups(config)
         return jsonify(
             {
-                "count": len(rows),
-                "items": parse_user_groups(rows),
+                "count": len(groups),
+                "items": groups,
                 "source": "master",
             }
         )
