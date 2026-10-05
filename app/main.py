@@ -11,6 +11,7 @@ from app.config import load_config
 from app.services.user_groups import get_user_groups, build_user_group_plan, apply_user_group_plan
 from app.services.users import propose_username
 from app.services.extensions import build_extension_plan, verify_extension_cluster, apply_extension
+from app.services.extension_bulk import build_bulk_plan, apply_bulk
 
 app = Flask(
     __name__,
@@ -129,6 +130,29 @@ def extension_verify(extension):
         return jsonify(verify_extension_cluster(config, extension))
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/extensions/bulk/plan", methods=["GET"])
+def extensions_bulk_plan():
+    try:
+        config = load_config()
+        return jsonify(build_bulk_plan(config))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/extensions/bulk/apply", methods=["POST"])
+def extensions_bulk_apply():
+    try:
+        if request.args.get("confirm") != "CREATE_BULK_EXTENSIONS":
+            return jsonify({
+                "error": "Confirmacion requerida: CREATE_BULK_EXTENSIONS"
+            }), 400
+
+        config = load_config()
+        return jsonify(apply_bulk(config))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
