@@ -8,8 +8,10 @@ NODE_ORDER = ["dial1", "dial2", "dial3", "dial4"]
 
 def _extension_settings(config):
     settings = config.raw.get("extensions", {})
-    start = int(settings.get("start", 161001))
-    end = int(settings.get("end", 162800))
+    raw_start = settings.get("start")
+    raw_end = settings.get("end")
+    start = int(raw_start) if raw_start not in (None, "") else 161001
+    end = int(raw_end) if raw_end not in (None, "") else 162800
     primary_node = settings.get("primary_node", "dial1")
     suffixes = settings.get("node_suffixes", {
         "dial1": "",
