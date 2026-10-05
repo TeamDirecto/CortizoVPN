@@ -1,0 +1,10 @@
+# Ejemplo para publicar CortizoVPN bajo /CortizoVPN/
+# Requiere mod_proxy y mod_proxy_http.
+
+ProxyPreserveHost On
+
+ProxyPass        /CortizoVPN/ http://127.0.0.1:8000/
+ProxyPassReverse /CortizoVPN/ http://127.0.0.1:8000/
+
+# Opcional: redirigir sin slash final.
+RedirectMatch 301 ^/CortizoVPN$ /CortizoVPN/
