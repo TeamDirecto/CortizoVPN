@@ -13,10 +13,18 @@ class SSHSettings(object):
         self.key_file = key_file
 
 
+class DBSettings(object):
+    def __init__(self, name=None, user=None, password=None):
+        self.name = name
+        self.user = user
+        self.password = password
+
+
 class AppConfig(object):
-    def __init__(self, raw, ssh):
+    def __init__(self, raw, ssh, db):
         self.raw = raw
         self.ssh = ssh
+        self.db = db
 
 
 def load_config(path="config/infrastructure.yml"):
@@ -42,4 +50,10 @@ def load_config(path="config/infrastructure.yml"):
         key_file=os.getenv("CORTIZOVPN_SSH_KEY_FILE") or None,
     )
 
-    return AppConfig(raw=raw, ssh=ssh)
+    db = DBSettings(
+        name=os.getenv("CORTIZOVPN_DB_NAME", "asterisk"),
+        user=os.getenv("CORTIZOVPN_DB_USER") or None,
+        password=os.getenv("CORTIZOVPN_DB_PASSWORD") or None,
+    )
+
+    return AppConfig(raw=raw, ssh=ssh, db=db)
