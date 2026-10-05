@@ -8,14 +8,18 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from app.config import load_config
-from app.db import run_readonly_query
-from app.services.user_groups import get_user_groups_sql, parse_user_groups
+from app.services.user_groups import get_available_columns, get_user_groups
 
 
 def main():
     config = load_config()
-    rows = run_readonly_query(config, get_user_groups_sql(), "master")
-    groups = parse_user_groups(rows)
+
+    columns = get_available_columns(config)
+    print("Columnas detectadas en vicidial_user_groups:")
+    print(", ".join(columns))
+    print("")
+
+    groups = get_user_groups(config)
 
     print("MASTER: {0} user_groups encontrados".format(len(groups)))
     print("")
@@ -23,11 +27,15 @@ def main():
     print("-" * 75)
 
     for group in groups:
+        active = group.get("active")
+        if active is None:
+            active = "-"
+
         print(
             "{0:<25} {1:<40} {2}".format(
-                group["user_group"][:25],
-                group["group_name"][:40],
-                group["active"],
+                (group.get("user_group") or "")[:25],
+                (group.get("group_name") or "")[:40],
+                active,
             )
         )
 
