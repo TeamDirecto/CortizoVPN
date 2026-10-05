@@ -62,3 +62,40 @@ infraestructura
     -> apply
     -> verify
 ```
+
+
+## Arranque local
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+cp config/infrastructure.yml.example config/infrastructure.yml
+cp .env.example .env
+```
+
+Las credenciales SSH reales deben cargarse únicamente en el entorno local. Por ejemplo:
+
+```bash
+export CORTIZOVPN_SSH_PASSWORD='...'
+```
+
+Prueba inicial de conectividad:
+
+```bash
+python3 scripts/test_connections.py
+```
+
+API de desarrollo:
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Endpoints iniciales:
+
+- `GET /health`
+- `GET /nodes`
+
+La consulta de `vicidial_user_groups` ya está definida en `app/services/user_groups.py`; la conexión a MariaDB se habilitará después de validar primero la ruta SSH completa hasta MASTER/SLAVE.
