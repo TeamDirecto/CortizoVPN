@@ -1,4 +1,4 @@
-from app.db import run_readonly_query
+from app.db import run_readonly_query, run_write_script
 
 
 BASE_COLUMNS = [
@@ -146,4 +146,101 @@ def build_user_group_plan(config):
         "exists_count": sum(1 for item in plan if item["status"] == "EXISTS"),
         "total": len(plan),
         "items": plan,
+    }
+
+
+
+def _quote_identifier(value):
+    return "`{0}`".format(str(value).replace("`", "``"))
+
+
+def _literal(value):
+    if value is None:
+        return "NULL"
+    return "'{0}'".format(_sql_quote(value))
+
+
+def apply_user_group_plan(config):
+    plan = build_user_group_plan(config)
+    create_items = [
+        item for item in plan["items"]
+        if item["status"] == "CREATE"
+    ]
+
+    if not create_items:
+        return {
+            "created": 0,
+            "message": "Todos los User Groups objetivo ya existen",
+            "plan": build_user_group_plan(config),
+        }
+
+    columns = get_available_columns(config)
+    if not columns:
+        raise RuntimeError(
+            "No se pudieron detectar columnas de vicidial_user_groups"
+        )
+
+    statements = ["START TRANSACTION"]
+
+    for item in create_items:
+        target = item["user_group"]
+        allowed_campaigns = item["allowed_campaigns"]
+
+        select_values = []
+        for column in columns:
+            if column == "user_group":
+                select_values.append(_literal(target))
+            elif column == "group_name":
+                select_values.append(_literal(target))
+            elif column == "allowed_campaigns":
+                select_values.append(_literal(allowed_campaigns))
+            elif column in (
+                "agent_status_viewable_groups",
+                "admin_viewable_groups",
+                "agent_allowed_chat_groups",
+            ):
+                select_values.append(
+                    _literal(" {0}  ".format(target))
+                )
+            else:
+                select_values.append(_quote_identifier(column))
+
+        statements.append(
+            "INSERT INTO vicidial_user_groups ({columns}) "
+            "SELECT {values} "
+            "FROM vicidial_user_groups "
+            "WHERE user_group={template} "
+            "AND NOT EXISTS ("
+            "SELECT 1 FROM vicidial_user_groups WHERE user_group={target}"
+            ")".format(
+                columns=", ".join(_quote_identifier(c) for c in columns),
+                values=", ".join(select_values),
+                template=_literal(LEGACY_GROUP),
+                target=_literal(target),
+            )
+        )
+
+    statements.append("COMMIT")
+    run_write_script(config, ";\n".join(statements) + ";", "master")
+
+    after = build_user_group_plan(config)
+    still_missing = [
+        item["user_group"]
+        for item in after["items"]
+        if item["status"] == "CREATE"
+    ]
+
+    if still_missing:
+        raise RuntimeError(
+            "La escritura termino pero siguen faltando grupos: {0}".format(
+                ", ".join(still_missing)
+            )
+        )
+
+    return {
+        "created": len(create_items),
+        "created_groups": [item["user_group"] for item in create_items],
+        "legacy_preserved": after["legacy_exists"],
+        "legacy_group": LEGACY_GROUP,
+        "plan": after,
     }
