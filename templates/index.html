@@ -82,6 +82,35 @@
       <section class="card">
         <div class="card-head">
           <div>
+            <h2>Plan de User Groups</h2>
+            <p>Compara los 18 grupos objetivo contra MASTER. Todavía no aplica cambios.</p>
+          </div>
+          <button id="loadGroupPlan" class="secondary" type="button">Generar plan</button>
+        </div>
+        <div id="groupPlanStatus" class="status">Plan pendiente.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Estado</th>
+                <th>User Group</th>
+                <th>Allowed campaigns</th>
+                <th>Plantilla</th>
+              </tr>
+            </thead>
+            <tbody id="groupPlanBody">
+              <tr><td colspan="4">Pulsa Generar plan.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="legacyGroupNotice" class="notice">
+          Grupo legado: <strong>CC-LIBERTAD-CORTIZO</strong>. Se eliminará únicamente al final.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
             <h2>Grupos detectados</h2>
             <p>Leídos directamente desde <code>asterisk.vicidial_user_groups</code> en MASTER.</p>
           </div>
