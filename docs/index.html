@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CortizoVPN</title>
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">VICIdial · Cortizo</p>
+        <h1>CortizoVPN</h1>
+        <p class="subtitle">Administración de usuarios, grupos y extensiones</p>
+      </div>
+      <div id="healthBadge" class="badge badge-wait">Comprobando backend…</div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Nuevo usuario</h2>
+            <p>Primera etapa: lectura de grupos desde MASTER. El alta todavía no escribe cambios.</p>
+          </div>
+        </div>
+
+        <div class="grid">
+          <label>
+            <span>User group</span>
+            <select id="userGroup" disabled>
+              <option>Cargando grupos…</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Usuario</span>
+            <input id="username" type="text" placeholder="Ej. JPEREZ" disabled>
+          </label>
+
+          <label class="wide">
+            <span>Nombre completo</span>
+            <input id="fullName" type="text" placeholder="Ej. JUAN PEREZ" disabled>
+          </label>
+
+          <label>
+            <span>Extensión</span>
+            <input id="extension" type="text" placeholder="Pendiente definir rango" disabled>
+          </label>
+
+          <div class="actions">
+            <button type="button" disabled>Generar plan</button>
+          </div>
+        </div>
+
+        <div class="notice">
+          <strong>Modo actual:</strong> solo lectura. La interfaz todavía no ejecuta INSERT, UPDATE ni DELETE.
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Grupos detectados</h2>
+            <p>Leídos directamente desde <code>asterisk.vicidial_user_groups</code> en MASTER.</p>
+          </div>
+          <button id="reloadGroups" class="secondary" type="button">Recargar</button>
+        </div>
+
+        <div id="groupsStatus" class="status">Esperando respuesta…</div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User group</th>
+                <th>Nombre</th>
+                <th>Allowed campaigns</th>
+              </tr>
+            </thead>
+            <tbody id="groupsBody">
+              <tr>
+                <td colspan="3">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
