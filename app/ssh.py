@@ -1,25 +1,19 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
-
 import paramiko
 
-from app.config import AppConfig
+
+class SSHResult(object):
+    def __init__(self, ok, detail):
+        self.ok = ok
+        self.detail = detail
 
 
-@dataclass
-class SSHResult:
-    ok: bool
-    detail: str
-
-
-def _new_client() -> paramiko.SSHClient:
+def _new_client():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     return client
 
 
-def connect_direct(host: str, config: AppConfig) -> paramiko.SSHClient:
+def connect_direct(host, config):
     client = _new_client()
     kwargs = {
         "hostname": host,
@@ -41,7 +35,7 @@ def connect_direct(host: str, config: AppConfig) -> paramiko.SSHClient:
     return client
 
 
-def test_direct(host: str, config: AppConfig) -> SSHResult:
+def test_direct(host, config):
     client = None
     try:
         client = connect_direct(host, config)
@@ -55,12 +49,7 @@ def test_direct(host: str, config: AppConfig) -> SSHResult:
             client.close()
 
 
-def connect_via_jump(
-    jump_host: str,
-    target_host: str,
-    target_port: int,
-    config: AppConfig,
-) -> tuple[paramiko.SSHClient, paramiko.SSHClient]:
+def connect_via_jump(jump_host, target_host, target_port, config):
     jump_client = connect_direct(jump_host, config)
     jump_transport = jump_client.get_transport()
     if jump_transport is None:
@@ -101,12 +90,7 @@ def connect_via_jump(
     return jump_client, target_client
 
 
-def test_via_jump(
-    jump_host: str,
-    target_host: str,
-    target_port: int,
-    config: AppConfig,
-) -> SSHResult:
+def test_via_jump(jump_host, target_host, target_port, config):
     jump_client = None
     target_client = None
     try:
