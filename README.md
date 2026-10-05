@@ -155,3 +155,40 @@ https://vicidial97.directo.com/cortizovpn-api/
 ```
 
 Apache debe mapear esa ruta a `http://127.0.0.1:8000/api/`.
+
+
+## Extensiones Cortizo
+
+Rango global reservado:
+
+```text
+161001 - 162800
+```
+
+La extension base pertenece al agente. La homologacion por dialer se prepara asi:
+
+```text
+dial1 / Marcador1 -> 161001
+dial2 / marcador2 -> 161001b
+dial3 / marcador3 -> 161001c
+dial4 / marcador4 -> 161001d
+```
+
+DIAL1 queda preparado pero deshabilitado temporalmente en configuracion. El flujo de
+despliegue previsto por nodo es:
+
+```text
+CREATE_PHONE
+-> REQUEST_REBUILD_CONF
+-> WAIT_REBUILD
+-> SIP_RELOAD
+-> VERIFY_SIP_PEER
+```
+
+Antes de habilitar CREATE_PHONE se debe validar una plantilla real de `phones`
+del nuevo Cortizo. Los endpoints de plan/verificacion ya estan disponibles:
+
+```text
+GET /api/extensions/161001/plan
+GET /api/extensions/161001/verify
+```
