@@ -1,9 +1,7 @@
+var API_BASE = "/api/";
+
 function apiUrl(path) {
-  var base = window.location.pathname;
-  if (!base.endsWith("/")) {
-    base += "/";
-  }
-  return base + path;
+  return API_BASE + path.replace(/^\//, "");
 }
 
 function setHealth(ok) {
@@ -57,35 +55,25 @@ function escapeHtml(value) {
 function loadHealth() {
   fetch(apiUrl("health"), { cache: "no-store" })
     .then(function (response) {
-      if (!response.ok) {
-        throw new Error("HTTP " + response.status);
-      }
+      if (!response.ok) throw new Error("HTTP " + response.status);
       return response.json();
     })
-    .then(function () {
-      setHealth(true);
-    })
-    .catch(function () {
-      setHealth(false);
-    });
+    .then(function () { setHealth(true); })
+    .catch(function () { setHealth(false); });
 }
 
 function loadGroups() {
   var status = document.getElementById("groupsStatus");
   status.textContent = "Consultando MASTER…";
 
-  fetch(apiUrl("api/user-groups"), { cache: "no-store" })
+  fetch(apiUrl("user-groups"), { cache: "no-store" })
     .then(function (response) {
       return response.json().then(function (data) {
-        if (!response.ok) {
-          throw new Error(data.error || ("HTTP " + response.status));
-        }
+        if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
         return data;
       });
     })
-    .then(function (data) {
-      fillGroups(data.items || []);
-    })
+    .then(function (data) { fillGroups(data.items || []); })
     .catch(function (error) {
       document.getElementById("userGroup").disabled = true;
       document.getElementById("groupsBody").innerHTML =
@@ -93,6 +81,63 @@ function loadGroups() {
       status.textContent = "Error: " + error.message;
     });
 }
+
+var previewTimer = null;
+
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(loadUsernamePreview, 350);
+}
+
+function loadUsernamePreview() {
+  var first = document.getElementById("firstName").value.trim();
+  var second = document.getElementById("secondName").value.trim();
+  var paternal = document.getElementById("paternalSurname").value.trim();
+  var maternal = document.getElementById("maternalSurname").value.trim();
+  var username = document.getElementById("username");
+  var fullName = document.getElementById("fullName");
+  var status = document.getElementById("usernameStatus");
+
+  if (!first || !paternal) {
+    username.value = "";
+    fullName.value = "";
+    status.textContent = "Captura primer nombre y apellido paterno.";
+    return;
+  }
+
+  status.textContent = "Validando contra vicidial_users…";
+
+  var query = new URLSearchParams({
+    first_name: first,
+    second_name: second,
+    paternal_surname: paternal,
+    maternal_surname: maternal
+  });
+
+  fetch(apiUrl("users/preview?" + query.toString()), { cache: "no-store" })
+    .then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+        return data;
+      });
+    })
+    .then(function (data) {
+      username.value = data.username || "";
+      fullName.value = data.full_name || "";
+      status.textContent = data.collision
+        ? "Se detectó colisión; usuario alternativo disponible: " + data.username
+        : "Usuario disponible: " + data.username;
+    })
+    .catch(function (error) {
+      username.value = "";
+      fullName.value = "";
+      status.textContent = "Error al validar usuario: " + error.message;
+    });
+}
+
+["firstName", "secondName", "paternalSurname", "maternalSurname"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", schedulePreview);
+});
 
 document.getElementById("reloadGroups").addEventListener("click", loadGroups);
 
