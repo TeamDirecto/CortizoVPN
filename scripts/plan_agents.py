@@ -15,53 +15,63 @@ def main():
     plan = build_agent_plan(config)
 
     print("== AGENT BULK PLAN ==")
-    print("source_file      : {0}".format(plan["source_file"]))
-    print("sheet            : {0}".format(plan["sheet"]))
-    print("target_count     : {0}".format(plan["target_count"]))
-    print("create_count     : {0}".format(plan["create_count"]))
-    print("update_count     : {0}".format(plan["update_count"]))
-    print("correct_count    : {0}".format(plan["correct_count"]))
-    print("duplicate_users  : {0}".format(len(plan["duplicate_users"])))
-    print("duplicate_ext    : {0}".format(len(plan["duplicate_extensions"])))
-    print("template_count   : {0}".format(len(plan["template_candidates"])))
-    print("write_ready      : {0}".format(plan["write_ready"]))
+    for key in (
+        "source_file", "sheet", "target_count", "group_count",
+        "create_count", "update_count", "correct_count",
+        "clone_fields_count", "write_ready",
+    ):
+        print("{0:18}: {1}".format(key, plan[key]))
 
-    if plan["duplicate_users"]:
-        print("duplicate user IDs:")
-        for value in plan["duplicate_users"][:20]:
-            print("  {0}".format(value))
-
-    if plan["duplicate_extensions"]:
-        print("duplicate extensions:")
-        for value in plan["duplicate_extensions"][:20]:
-            print("  {0}".format(value))
+    print("duplicate_users   : {0}".format(len(plan["duplicate_users"])))
+    print("duplicate_ext     : {0}".format(len(plan["duplicate_extensions"])))
+    print("missing_defaults  : {0}".format(len(plan["missing_defaults"])))
+    print("missing_templates : {0}".format(len(plan["missing_templates"])))
+    print("missing_clone_cols: {0}".format(len(plan["missing_clone_schema"])))
+    print("blockers          : {0}".format(plan["blockers"]))
 
     print("")
-    print("== TEMPLATE CANDIDATES ==")
-    for item in plan["template_candidates"]:
+    print("== GROUP TEMPLATE STATUS ==")
+    for group in sorted(plan["template_status"]):
+        item = plan["template_status"][group]
         print(
-            "{user} | {full_name} | {user_group} | level={user_level} | active={active}".format(
-                user=item.get("user", ""),
-                full_name=item.get("full_name", ""),
-                user_group=item.get("user_group", ""),
-                user_level=item.get("user_level", ""),
-                active=item.get("active", ""),
+            "{0:26} template={1:20} exists={2} active={3} level={4}".format(
+                group,
+                str(item.get("template_user") or "-"),
+                item.get("exists"),
+                item.get("active"),
+                item.get("user_level"),
             )
         )
+
+    if plan["missing_defaults"]:
+        print("MISSING DEFAULTS:")
+        for group in plan["missing_defaults"]:
+            print("  " + group)
+
+    if plan["missing_templates"]:
+        print("MISSING TEMPLATE ROWS:")
+        for group in plan["missing_templates"]:
+            print("  " + group)
+
+    if plan["missing_clone_schema"]:
+        print("MISSING CLONE COLUMNS:")
+        for field in plan["missing_clone_schema"]:
+            print("  " + field)
 
     print("")
     print("== FIRST 20 ACTIONS ==")
     for item in plan["items"][:20]:
         print(
-            "{status:14} {user:18} {group:26} ext={extension}".format(
+            "{status:14} {user:18} {group:26} ext={extension} template={template}".format(
                 status=item["status"],
                 user=item["user"],
                 group=item["user_group"],
                 extension=item["extension"],
+                template=item.get("template_user") or "-",
             )
         )
 
-    return 0
+    return 0 if plan["write_ready"] else 2
 
 
 if __name__ == "__main__":
