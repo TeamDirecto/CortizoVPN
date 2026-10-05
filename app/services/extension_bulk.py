@@ -168,7 +168,7 @@ def _build_insert_with_columns(columns, target_extension, server_ip):
     )
 
 
-def _run_insert_chunks(config, create_items, chunk_size=20):
+def _run_insert_chunks(config, create_items, chunk_size=100):
     columns = _phones_columns(config)
     if not columns:
         raise RuntimeError("No se pudieron detectar columnas de phones")
