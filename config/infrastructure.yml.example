@@ -33,6 +33,12 @@ database:
     jump_host: dial2
 
 extensions:
-  # Definir el rango real antes de habilitar altas.
-  start: null
-  end: null
+  # Rango global reservado para Cortizo.
+  start: 161001
+  end: 162800
+  primary_node: dial1
+  node_suffixes:
+    dial1: ""
+    dial2: "b"
+    dial3: "c"
+    dial4: "d"
