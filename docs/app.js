@@ -139,6 +139,48 @@ function loadUsernamePreview() {
   document.getElementById(id).addEventListener("input", schedulePreview);
 });
 
+function loadGroupPlan() {
+  var status = document.getElementById("groupPlanStatus");
+  var body = document.getElementById("groupPlanBody");
+  status.textContent = "Comparando contra MASTER…";
+  body.innerHTML = '<tr><td colspan="4">Consultando…</td></tr>';
+
+  fetch(apiUrl("user-groups/plan"), { cache: "no-store" })
+    .then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+        return data;
+      });
+    })
+    .then(function (data) {
+      body.innerHTML = "";
+      (data.items || []).forEach(function (item) {
+        var row = document.createElement("tr");
+        row.innerHTML =
+          "<td><strong>" + escapeHtml(item.status) + "</strong></td>" +
+          "<td>" + escapeHtml(item.user_group) + "</td>" +
+          "<td>" + escapeHtml(item.allowed_campaigns || "(sin campaña)") + "</td>" +
+          "<td>" + escapeHtml(item.source_template || "") + "</td>";
+        body.appendChild(row);
+      });
+
+      status.textContent =
+        data.total + " grupos objetivo · " +
+        data.create_count + " por crear · " +
+        data.exists_count + " existentes";
+
+      var legacy = document.getElementById("legacyGroupNotice");
+      legacy.innerHTML = data.legacy_exists
+        ? 'Grupo legado <strong>CC-LIBERTAD-CORTIZO</strong>: existe y queda marcado para eliminar al final.'
+        : 'Grupo legado <strong>CC-LIBERTAD-CORTIZO</strong>: ya no existe.';
+    })
+    .catch(function (error) {
+      body.innerHTML = '<tr><td colspan="4">Error al generar plan.</td></tr>';
+      status.textContent = "Error: " + error.message;
+    });
+}
+
+document.getElementById("loadGroupPlan").addEventListener("click", loadGroupPlan);
 document.getElementById("reloadGroups").addEventListener("click", loadGroups);
 
 loadHealth();
