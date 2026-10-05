@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 USER_GROUPS_SQL = """
 SELECT
     user_group,
@@ -11,5 +9,19 @@ ORDER BY user_group
 """.strip()
 
 
-def get_user_groups_sql() -> str:
+def get_user_groups_sql():
     return USER_GROUPS_SQL
+
+
+def parse_user_groups(rows):
+    groups = []
+    for row in rows:
+        groups.append(
+            {
+                "user_group": row[0],
+                "group_name": row[1],
+                "allowed_campaigns": row[2],
+                "active": row[3],
+            }
+        )
+    return groups
