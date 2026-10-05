@@ -212,24 +212,29 @@ def _run_insert_chunks(config, create_items, chunk_size=10):
     return created
 
 
-def _update_existing_metadata(config, update_items):
+def _update_existing_metadata(config, update_items, chunk_size=50):
     if not update_items:
         return 0
 
-    statements = ["START TRANSACTION"]
-    for item in update_items:
-        statements.append(
-            "UPDATE phones SET fullname={fullname}, user_group={user_group} "
-            "WHERE extension={extension} AND server_ip={server_ip}".format(
-                fullname=_literal(item["base_extension"]),
-                user_group=_literal(item["user_group"]),
-                extension=_literal(item["extension"]),
-                server_ip=_literal(item["server_ip"]),
+    updated = 0
+    for start in range(0, len(update_items), chunk_size):
+        chunk = update_items[start:start + chunk_size]
+        statements = ["START TRANSACTION"]
+        for item in chunk:
+            statements.append(
+                "UPDATE phones SET fullname={fullname}, user_group={user_group} "
+                "WHERE extension={extension} AND server_ip={server_ip}".format(
+                    fullname=_literal(item["base_extension"]),
+                    user_group=_literal(item["user_group"]),
+                    extension=_literal(item["extension"]),
+                    server_ip=_literal(item["server_ip"]),
+                )
             )
-        )
-    statements.append("COMMIT")
-    run_write_script(config, ";\n".join(statements) + ";", "master")
-    return len(update_items)
+        statements.append("COMMIT")
+        run_write_script(config, ";\n".join(statements) + ";", "master")
+        updated += len(chunk)
+
+    return updated
 
 
 def _verify_node_peers(config, node_name, expected):
