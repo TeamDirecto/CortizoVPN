@@ -22,26 +22,44 @@
         <div class="card-head">
           <div>
             <h2>Nuevo usuario</h2>
-            <p>Primera etapa: lectura de grupos desde MASTER. El alta todavía no escribe cambios.</p>
+            <p>Captura nombre y apellidos. El usuario se propone automáticamente y se valida contra VICIdial.</p>
           </div>
         </div>
 
         <div class="grid">
           <label>
             <span>User group</span>
-            <select id="userGroup" disabled>
-              <option>Cargando grupos…</option>
-            </select>
+            <select id="userGroup" disabled><option>Cargando grupos…</option></select>
           </label>
 
           <label>
-            <span>Usuario</span>
-            <input id="username" type="text" placeholder="Ej. JPEREZ" disabled>
+            <span>Usuario propuesto</span>
+            <input id="username" type="text" placeholder="Se generará automáticamente" readonly>
+          </label>
+
+          <label>
+            <span>Primer nombre *</span>
+            <input id="firstName" type="text" placeholder="Ej. JUAN">
+          </label>
+
+          <label>
+            <span>Segundo nombre</span>
+            <input id="secondName" type="text" placeholder="Ej. CARLOS">
+          </label>
+
+          <label>
+            <span>Apellido paterno *</span>
+            <input id="paternalSurname" type="text" placeholder="Ej. PEREZ">
+          </label>
+
+          <label>
+            <span>Apellido materno</span>
+            <input id="maternalSurname" type="text" placeholder="Ej. LOPEZ">
           </label>
 
           <label class="wide">
-            <span>Nombre completo</span>
-            <input id="fullName" type="text" placeholder="Ej. JUAN PEREZ" disabled>
+            <span>Nombre completo normalizado</span>
+            <input id="fullName" type="text" placeholder="Se formará automáticamente" readonly>
           </label>
 
           <label>
@@ -50,12 +68,14 @@
           </label>
 
           <div class="actions">
-            <button type="button" disabled>Generar plan</button>
+            <button id="generatePlan" type="button" disabled>Generar plan</button>
           </div>
         </div>
 
+        <div id="usernameStatus" class="status">Captura primer nombre y apellido paterno.</div>
+
         <div class="notice">
-          <strong>Modo actual:</strong> solo lectura. La interfaz todavía no ejecuta INSERT, UPDATE ni DELETE.
+          <strong>Modo actual:</strong> solo lectura. La interfaz valida usuarios existentes, pero todavía no ejecuta INSERT, UPDATE ni DELETE.
         </div>
       </section>
 
@@ -67,29 +87,16 @@
           </div>
           <button id="reloadGroups" class="secondary" type="button">Recargar</button>
         </div>
-
         <div id="groupsStatus" class="status">Esperando respuesta…</div>
-
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>User group</th>
-                <th>Nombre</th>
-                <th>Allowed campaigns</th>
-              </tr>
-            </thead>
-            <tbody id="groupsBody">
-              <tr>
-                <td colspan="3">Cargando…</td>
-              </tr>
-            </tbody>
+            <thead><tr><th>User group</th><th>Nombre</th><th>Allowed campaigns</th></tr></thead>
+            <tbody id="groupsBody"><tr><td colspan="3">Cargando…</td></tr></tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
-
   <script src="./app.js"></script>
 </body>
 </html>
