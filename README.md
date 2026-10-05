@@ -134,3 +134,24 @@ deployment/systemd/cortizovpn.service.example
 ```
 
 La interfaz actual está intencionalmente en modo lectura: muestra los `user_groups` del MASTER, pero no crea ni modifica usuarios todavía.
+
+
+## GitHub Pages frontend
+
+El frontend estático vive en `docs/` para publicarse con GitHub Pages.
+
+URL esperada:
+
+```text
+https://teamdirecto.github.io/CortizoVPN/
+```
+
+En GitHub configurar **Settings -> Pages -> Deploy from a branch -> main -> /docs**.
+
+El frontend consume la API publicada por Apache en:
+
+```text
+https://vicidial97.directo.com/cortizovpn-api/
+```
+
+Apache debe mapear esa ruta a `http://127.0.0.1:8000/api/`.
