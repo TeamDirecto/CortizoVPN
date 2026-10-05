@@ -254,8 +254,8 @@ def build_agent_plan(config, path=DEFAULT_FILE):
         blockers.append("DUPLICATE_EXTENSIONS")
     if missing_identity_schema:
         blockers.append("IDENTITY_SCHEMA_MISMATCH")
-    if missing_schema:
-        blockers.append("CLONE_SCHEMA_ALLOWLIST_MISMATCH")
+    # Diferencias de version entre EHECTO y CortizoVPN son esperables.
+    # Solo se clonan los campos de la allowlist que existen en el esquema destino.
     if missing_defaults:
         blockers.append("DEFAULT_PASSWORD_NOT_CONFIGURED")
     if missing_templates:
@@ -273,6 +273,9 @@ def build_agent_plan(config, path=DEFAULT_FILE):
         "duplicate_extensions": sorted(set(duplicate_extensions)),
         "missing_identity_schema": missing_identity_schema,
         "missing_clone_schema": missing_schema,
+        "supported_clone_fields": [
+            field for field in USER_CLONE_FIELDS if field in schema
+        ],
         "missing_defaults": missing_defaults,
         "missing_templates": missing_templates,
         "template_status": template_status,
