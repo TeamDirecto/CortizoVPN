@@ -7,15 +7,20 @@ dialers:
   dial1:
     lan_ip: 10.10.15.10
     wan_ip: 201.132.81.26
+    enabled: false
+    note: "Temporalmente fuera por iptables; dejar preparado para habilitarlo sin cambiar código."
   dial2:
     lan_ip: 10.10.15.11
     wan_ip: 201.132.81.27
+    enabled: true
   dial3:
     lan_ip: 10.10.15.12
     wan_ip: 201.132.81.28
+    enabled: true
   dial4:
     lan_ip: 10.10.15.13
     wan_ip: 201.132.81.29
+    enabled: true
 
 database:
   slave:
