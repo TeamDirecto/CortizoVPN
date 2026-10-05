@@ -5,7 +5,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 from app.config import load_config
 from app.services.user_groups import get_user_groups
@@ -15,6 +15,19 @@ app = Flask(
     template_folder="../templates",
     static_folder="../static",
 )
+
+ALLOWED_ORIGINS = {
+    "https://teamdirecto.github.io",
+}
+
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+    return response
 
 
 @app.route("/", methods=["GET"])
