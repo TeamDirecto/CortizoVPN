@@ -1,9 +1,18 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 
 from app.config import load_config
 from app.services.user_groups import get_user_groups
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder="../templates",
+    static_folder="../static",
+)
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html")
 
 
 @app.route("/health", methods=["GET"])
@@ -12,6 +21,7 @@ def health():
 
 
 @app.route("/nodes", methods=["GET"])
+@app.route("/api/nodes", methods=["GET"])
 def nodes():
     config = load_config()
     return jsonify(
@@ -23,6 +33,7 @@ def nodes():
 
 
 @app.route("/user-groups", methods=["GET"])
+@app.route("/api/user-groups", methods=["GET"])
 def user_groups():
     try:
         config = load_config()
