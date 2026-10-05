@@ -49,22 +49,49 @@ def target_rows():
     return rows
 
 
+def phone_extension_for_node(base_extension, node_name):
+    return str(base_extension)
+
+
+def phone_login_for_node(config, base_extension, node_name):
+    return extension_for_node(config, base_extension, node_name)
+
+
+def dialplan_for_node(base_extension, node_name):
+    base = str(base_extension)
+    prefixes = {
+        "dial1": "",
+        "dial2": "1",
+        "dial3": "2",
+        "dial4": "3",
+    }
+    return "{0}{1}".format(prefixes[node_name], base)
+
+
 def _existing_phones(config):
     rows = run_readonly_query(
         config,
-        "SELECT extension, server_ip, fullname, user_group FROM phones "
+        "SELECT extension, server_ip, dialplan_number, voicemail_id, login, "
+        "pass, fullname, outbound_cid, user_group FROM phones "
         "WHERE extension LIKE '161%' OR extension LIKE '162%'",
         "master",
     )
-    return {
-        row[0]: {
+    result = {}
+    for row in rows:
+        if len(row) < 2:
+            continue
+        result[(row[0], row[1])] = {
+            "extension": row[0],
             "server_ip": row[1],
-            "fullname": row[2] if len(row) > 2 else "",
-            "user_group": row[3] if len(row) > 3 else "",
+            "dialplan_number": row[2] if len(row) > 2 else "",
+            "voicemail_id": row[3] if len(row) > 3 else "",
+            "login": row[4] if len(row) > 4 else "",
+            "pass": row[5] if len(row) > 5 else "",
+            "fullname": row[6] if len(row) > 6 else "",
+            "outbound_cid": row[7] if len(row) > 7 else "",
+            "user_group": row[8] if len(row) > 8 else "",
         }
-        for row in rows
-        if len(row) >= 2
-    }
+    return result
 
 
 def build_bulk_plan(config):
@@ -83,44 +110,68 @@ def build_bulk_plan(config):
         for node_name in NODE_ORDER:
             node = dialers.get(node_name)
             if not node:
-                status = "CONFIG_MISSING"
-                variant = None
-                current_server = None
-            else:
-                variant = extension_for_node(config, base, node_name)
-                current = existing.get(variant)
-                current_server = current.get("server_ip") if current else None
-                if not node.get("enabled", True):
-                    status = "SKIP_DISABLED"
-                    skipped_count += 1
-                elif current_server == node.get("lan_ip"):
-                    if (
-                        current.get("fullname") != base
-                        or current.get("user_group") != row["user_group"]
-                    ):
-                        status = "UPDATE_METADATA"
-                        update_count += 1
-                    else:
-                        status = "EXISTS"
-                        exists_count += 1
-                elif current_server:
-                    status = "CONFLICT"
-                    conflicts.append({
-                        "extension": variant,
-                        "expected_server": node.get("lan_ip"),
-                        "current_server": current_server,
-                    })
+                items.append({
+                    "user_group": row["user_group"],
+                    "base_extension": base,
+                    "node": node_name,
+                    "status": "CONFIG_MISSING",
+                })
+                continue
+
+            server_ip = node.get("lan_ip")
+            phone_extension = phone_extension_for_node(base, node_name)
+            login = phone_login_for_node(config, base, node_name)
+            dialplan_number = dialplan_for_node(base, node_name)
+            desired = {
+                "extension": phone_extension,
+                "server_ip": server_ip,
+                "dialplan_number": dialplan_number,
+                "voicemail_id": base,
+                "login": login,
+                "pass": base,
+                "fullname": "ext {0}".format(base),
+                "outbound_cid": "0000000000",
+                "user_group": row["user_group"],
+            }
+
+            current = existing.get((phone_extension, server_ip))
+            legacy_variant = existing.get((login, server_ip)) if login != phone_extension else None
+
+            if not node.get("enabled", True):
+                status = "SKIP_DISABLED"
+                skipped_count += 1
+            elif current:
+                mismatched = any(
+                    str(current.get(key) or "") != str(value or "")
+                    for key, value in desired.items()
+                    if key not in ("extension", "server_ip")
+                )
+                if legacy_variant:
+                    status = "MERGE_LEGACY_VARIANT"
+                    update_count += 1
+                elif mismatched:
+                    status = "UPDATE_METADATA"
+                    update_count += 1
                 else:
-                    status = "CREATE"
-                    create_count += 1
+                    status = "EXISTS"
+                    exists_count += 1
+            elif legacy_variant:
+                status = "REKEY_LEGACY_VARIANT"
+                update_count += 1
+            else:
+                status = "CREATE"
+                create_count += 1
 
             items.append({
                 "user_group": row["user_group"],
                 "base_extension": base,
                 "node": node_name,
-                "extension": variant,
-                "server_ip": node.get("lan_ip") if node else None,
+                "extension": phone_extension,
+                "login": login,
+                "dialplan_number": dialplan_number,
+                "server_ip": server_ip,
                 "status": status,
+                "desired": desired,
             })
 
     groups = []
@@ -147,26 +198,12 @@ def build_bulk_plan(config):
     }
 
 
-def _build_insert_with_columns(
-    columns, target_extension, base_extension, server_ip, user_group
-):
+def _build_insert_with_columns(columns, item):
+    desired = item["desired"]
     values = []
     for column in columns:
-        if column in (
-            "extension",
-            "dialplan_number",
-            "voicemail_id",
-            "login",
-            "pass",
-            "outbound_cid",
-        ):
-            values.append(_literal(target_extension))
-        elif column == "fullname":
-            values.append(_literal(base_extension))
-        elif column == "user_group":
-            values.append(_literal(user_group))
-        elif column == "server_ip":
-            values.append(_literal(server_ip))
+        if column in desired:
+            values.append(_literal(desired[column]))
         elif column in ("phone_ip", "computer_ip"):
             values.append("''")
         elif column == "peer_status":
@@ -179,9 +216,9 @@ def _build_insert_with_columns(
     return (
         "INSERT INTO phones ({columns}) "
         "SELECT {values} FROM phones "
-        "WHERE extension={template} LIMIT 1"
+        "WHERE extension={template} AND server_ip='10.10.15.11' LIMIT 1"
     ).format(
-        columns=", ".join(_quote_identifier(c) for c in columns),
+        columns=", ".join(_quote_identifier(col) for col in columns),
         values=", ".join(values),
         template=_literal(TEMPLATE_EXTENSION),
     )
@@ -198,13 +235,7 @@ def _run_insert_chunks(config, create_items, chunk_size=10):
         statements = ["START TRANSACTION"]
         for item in chunk:
             statements.append(
-                _build_insert_with_columns(
-                    columns,
-                    item["extension"],
-                    item["base_extension"],
-                    item["server_ip"],
-                    item["user_group"],
-                )
+                _build_insert_with_columns(columns, item)
             )
         statements.append("COMMIT")
         run_write_script(config, ";\n".join(statements) + ";", "master")
@@ -212,7 +243,7 @@ def _run_insert_chunks(config, create_items, chunk_size=10):
     return created
 
 
-def _update_existing_metadata(config, update_items, chunk_size=50):
+def _update_existing_metadata(config, update_items, chunk_size=25):
     if not update_items:
         return 0
 
@@ -221,18 +252,31 @@ def _update_existing_metadata(config, update_items, chunk_size=50):
         chunk = update_items[start:start + chunk_size]
         statements = ["START TRANSACTION"]
         for item in chunk:
+            if item["status"] != "UPDATE_METADATA":
+                continue
+            desired = item["desired"]
             statements.append(
-                "UPDATE phones SET fullname={fullname}, user_group={user_group} "
+                "UPDATE phones SET "
+                "dialplan_number={dialplan_number}, voicemail_id={voicemail_id}, "
+                "login={login}, pass={password}, fullname={fullname}, "
+                "outbound_cid={outbound_cid}, user_group={user_group} "
                 "WHERE extension={extension} AND server_ip={server_ip}".format(
-                    fullname=_literal(item["base_extension"]),
-                    user_group=_literal(item["user_group"]),
-                    extension=_literal(item["extension"]),
-                    server_ip=_literal(item["server_ip"]),
+                    dialplan_number=_literal(desired["dialplan_number"]),
+                    voicemail_id=_literal(desired["voicemail_id"]),
+                    login=_literal(desired["login"]),
+                    password=_literal(desired["pass"]),
+                    fullname=_literal(desired["fullname"]),
+                    outbound_cid=_literal(desired["outbound_cid"]),
+                    user_group=_literal(desired["user_group"]),
+                    extension=_literal(desired["extension"]),
+                    server_ip=_literal(desired["server_ip"]),
                 )
             )
+        if len(statements) == 1:
+            continue
         statements.append("COMMIT")
         run_write_script(config, ";\n".join(statements) + ";", "master")
-        updated += len(chunk)
+        updated += len([i for i in chunk if i["status"] == "UPDATE_METADATA"])
 
     return updated
 
@@ -301,6 +345,18 @@ def apply_bulk(config):
         item for item in plan["items"]
         if item["status"] == "CREATE"
     ]
+    structural_items = [
+        item for item in plan["items"]
+        if item["status"] in ("REKEY_LEGACY_VARIANT", "MERGE_LEGACY_VARIANT")
+    ]
+    if structural_items:
+        raise RuntimeError(
+            "Se detectaron {0} phones con estructura anterior; "
+            "ejecuta scripts/repair_phone_structure.py antes del bulk apply".format(
+                len(structural_items)
+            )
+        )
+
     update_items = [
         item for item in plan["items"]
         if item["status"] == "UPDATE_METADATA"
@@ -337,7 +393,7 @@ def apply_bulk(config):
 
         reload_results.append(_sip_reload(config, node_name))
         expected = [
-            extension_for_node(config, row["base_extension"], node_name)
+            phone_login_for_node(config, row["base_extension"], node_name)
             for row in targets
         ]
         verify_results.append(
