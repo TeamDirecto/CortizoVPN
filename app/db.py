@@ -118,6 +118,7 @@ def run_write_script(config, sql, target_name="master"):
         "START TRANSACTION",
         "INSERT",
         "UPDATE",
+        "DELETE",
         "COMMIT",
         "ROLLBACK",
     )
