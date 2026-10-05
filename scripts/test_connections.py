@@ -20,6 +20,14 @@ def main():
 
     print("== Dialers por WAN ==")
     for name, node in dialers.items():
+        if not node.get("enabled", True):
+            print(
+                "[SKIP] {0:6} {1}:{2} -> deshabilitado temporalmente".format(
+                    name.upper(), node["wan_ip"], config.ssh.port
+                )
+            )
+            continue
+
         host = node["wan_ip"]
         result = test_direct(host, config)
         state = "OK" if result.ok else "ERROR"
@@ -40,6 +48,15 @@ def main():
             print(
                 "[ERROR] {0:6} jump_host desconocido: {1}".format(
                     name.upper(), jump_name
+                )
+            )
+            failures += 1
+            continue
+
+        if not jump.get("enabled", True):
+            print(
+                "[ERROR] {0:6} jump_host {1} esta deshabilitado".format(
+                    name.upper(), jump_name.upper()
                 )
             )
             failures += 1
