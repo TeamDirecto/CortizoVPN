@@ -1,0 +1,33 @@
+ssh:
+  user: root
+  port: 19600
+  connect_timeout: 8
+
+dialers:
+  dial1:
+    lan_ip: 10.10.15.10
+    wan_ip: 201.132.81.26
+  dial2:
+    lan_ip: 10.10.15.11
+    wan_ip: 201.132.81.27
+  dial3:
+    lan_ip: 10.10.15.12
+    wan_ip: 201.132.81.28
+  dial4:
+    lan_ip: 10.10.15.13
+    wan_ip: 201.132.81.29
+
+database:
+  slave:
+    host: 10.10.15.14
+    port: 19600
+    jump_host: dial2
+  master:
+    host: 10.10.15.15
+    port: 19600
+    jump_host: dial2
+
+extensions:
+  # Definir el rango real antes de habilitar altas.
+  start: null
+  end: null
