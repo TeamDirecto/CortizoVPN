@@ -8,7 +8,7 @@ if PROJECT_ROOT not in sys.path:
 from flask import Flask, jsonify, render_template, request
 
 from app.config import load_config
-from app.services.user_groups import get_user_groups
+from app.services.user_groups import get_user_groups, build_user_group_plan
 from app.services.users import propose_username
 
 app = Flask(
@@ -67,6 +67,15 @@ def user_groups():
                 "source": "master",
             }
         )
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/user-groups/plan", methods=["GET"])
+def user_groups_plan():
+    try:
+        config = load_config()
+        return jsonify(build_user_group_plan(config))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
