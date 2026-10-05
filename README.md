@@ -99,3 +99,38 @@ Endpoints iniciales:
 - `GET /nodes`
 
 La consulta de `vicidial_user_groups` ya está definida en `app/services/user_groups.py`; la conexión a MariaDB se habilitará después de validar primero la ruta SSH completa hasta MASTER/SLAVE.
+
+
+## Frontend web
+
+La aplicación sirve una interfaz inicial en `/`. En desarrollo:
+
+```bash
+python3 app/main.py
+```
+
+Abrir localmente:
+
+```text
+http://127.0.0.1:8000/
+```
+
+Para publicación interna detrás de Apache, el ejemplo está en:
+
+```text
+deployment/apache/CortizoVPN.conf.example
+```
+
+La ruta prevista es:
+
+```text
+/CortizoVPN/
+```
+
+El servicio de producción puede ejecutarse con Gunicorn usando:
+
+```text
+deployment/systemd/cortizovpn.service.example
+```
+
+La interfaz actual está intencionalmente en modo lectura: muestra los `user_groups` del MASTER, pero no crea ni modifica usuarios todavía.
