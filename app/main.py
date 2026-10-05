@@ -1,6 +1,8 @@
 from flask import Flask, jsonify
 
 from app.config import load_config
+from app.db import run_readonly_query
+from app.services.user_groups import get_user_groups_sql, parse_user_groups
 
 app = Flask(__name__)
 
@@ -19,6 +21,22 @@ def nodes():
             "database": config.raw.get("database", {}),
         }
     )
+
+
+@app.route("/user-groups", methods=["GET"])
+def user_groups():
+    try:
+        config = load_config()
+        rows = run_readonly_query(config, get_user_groups_sql(), "master")
+        return jsonify(
+            {
+                "count": len(rows),
+                "items": parse_user_groups(rows),
+                "source": "master",
+            }
+        )
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 if __name__ == "__main__":
