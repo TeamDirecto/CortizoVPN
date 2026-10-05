@@ -13,6 +13,7 @@ from app.config import load_config
 from app.db import run_readonly_query, run_write_script
 from app.services.agent_bulk import (
     USER_CLONE_FIELDS,
+    _read_targets,
     load_group_defaults,
     load_group_templates,
 )
@@ -123,10 +124,9 @@ def main():
     schema = target_schema(config)
     clone_fields = [field for field in USER_CLONE_FIELDS if field in schema]
 
-    groups = sorted(
-        group for group in templates
-        if group in defaults and group.startswith("CC-CORTIZO-")
-    )
+    groups = sorted(set(
+        item["user_group"] for item in _read_targets()
+    ))
     existing = existing_target_templates(config, templates)
 
     source = source_connection()
