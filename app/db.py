@@ -117,6 +117,7 @@ def run_write_script(config, sql, target_name="master"):
     allowed = (
         "START TRANSACTION",
         "INSERT",
+        "UPDATE",
         "COMMIT",
         "ROLLBACK",
     )
