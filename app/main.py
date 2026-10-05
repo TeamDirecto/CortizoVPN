@@ -10,6 +10,7 @@ from flask import Flask, jsonify, render_template, request
 from app.config import load_config
 from app.services.user_groups import get_user_groups, build_user_group_plan, apply_user_group_plan
 from app.services.users import propose_username
+from app.services.extensions import build_extension_plan, verify_extension_cluster
 
 app = Flask(
     __name__,
@@ -90,6 +91,28 @@ def user_groups_apply():
 
         config = load_config()
         return jsonify(apply_user_group_plan(config))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/extensions/<extension>/plan", methods=["GET"])
+def extension_plan(extension):
+    try:
+        config = load_config()
+        return jsonify(build_extension_plan(config, extension))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/extensions/<extension>/verify", methods=["GET"])
+def extension_verify(extension):
+    try:
+        config = load_config()
+        return jsonify(verify_extension_cluster(config, extension))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
