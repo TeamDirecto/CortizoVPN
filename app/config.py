@@ -1,37 +1,37 @@
-from __future__ import annotations
-
 import os
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import yaml
 
 
-@dataclass(frozen=True)
-class SSHSettings:
-    user: str
-    port: int
-    connect_timeout: int
-    password: str | None = None
-    key_file: str | None = None
+class SSHSettings(object):
+    def __init__(self, user, port, connect_timeout, password=None, key_file=None):
+        self.user = user
+        self.port = port
+        self.connect_timeout = connect_timeout
+        self.password = password
+        self.key_file = key_file
 
 
-@dataclass(frozen=True)
-class AppConfig:
-    raw: dict[str, Any]
-    ssh: SSHSettings
+class AppConfig(object):
+    def __init__(self, raw, ssh):
+        self.raw = raw
+        self.ssh = ssh
 
 
-def load_config(path: str | Path = "config/infrastructure.yml") -> AppConfig:
+def load_config(path="config/infrastructure.yml"):
     config_path = Path(path)
     if not config_path.exists():
         raise FileNotFoundError(
-            f"No existe {config_path}. Copia "
-            "config/infrastructure.yml.example a config/infrastructure.yml"
+            "No existe {0}. Copia "
+            "config/infrastructure.yml.example a config/infrastructure.yml".format(
+                config_path
+            )
         )
 
-    raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    with config_path.open("r", encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+
     ssh_raw = raw.get("ssh", {})
 
     ssh = SSHSettings(
