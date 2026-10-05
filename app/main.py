@@ -1,25 +1,25 @@
-from __future__ import annotations
-
-from fastapi import FastAPI
+from flask import Flask, jsonify
 
 from app.config import load_config
 
-app = FastAPI(
-    title="CortizoVPN",
-    version="0.1.0",
-    description="Administración controlada de usuarios, grupos y extensiones VICIdial.",
-)
+app = Flask(__name__)
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"})
 
 
-@app.get("/nodes")
-def nodes() -> dict:
+@app.route("/nodes", methods=["GET"])
+def nodes():
     config = load_config()
-    return {
-        "dialers": config.raw.get("dialers", {}),
-        "database": config.raw.get("database", {}),
-    }
+    return jsonify(
+        {
+            "dialers": config.raw.get("dialers", {}),
+            "database": config.raw.get("database", {}),
+        }
+    )
+
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=8000, debug=True)
