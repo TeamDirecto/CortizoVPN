@@ -16,3 +16,5 @@ id_ed25519
 
 .vscode/
 .idea/
+
+data/
