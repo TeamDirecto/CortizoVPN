@@ -101,7 +101,7 @@ def target_campaigns(config, campaign_ids):
         "master",
     )
     return {
-        row[0]: {
+        str(row[0]).upper(): {
             "campaign_id": row[0],
             "campaign_name": row[1] if len(row) > 1 else "",
             "active": row[2] if len(row) > 2 else "",
@@ -201,11 +201,11 @@ def main():
     create_campaigns = [
         campaign_id for campaign_id in all_campaign_ids
         if campaign_id in source_campaigns
-        and campaign_id not in target_campaign_rows
+        and campaign_id.upper() not in target_campaign_rows
     ]
     existing_campaigns = [
         campaign_id for campaign_id in all_campaign_ids
-        if campaign_id in target_campaign_rows
+        if campaign_id.upper() in target_campaign_rows
     ]
 
     groups_to_update = []
@@ -220,6 +220,14 @@ def main():
             groups_already_correct.append(group)
         else:
             groups_to_update.append(group)
+
+    case_differences = []
+    for campaign_id in all_campaign_ids:
+        target_row = target_campaign_rows.get(campaign_id.upper())
+        if target_row and str(target_row["campaign_id"]) != str(campaign_id):
+            case_differences.append(
+                (campaign_id, str(target_row["campaign_id"]))
+            )
 
     blockers = []
     if missing_source_groups:
@@ -237,6 +245,7 @@ def main():
     print("unique_campaigns       : {0}".format(len(all_campaign_ids)))
     print("campaigns_create       : {0}".format(len(create_campaigns)))
     print("campaigns_existing     : {0}".format(len(existing_campaigns)))
+    print("campaign_id_case_diff  : {0}".format(len(case_differences)))
     print("groups_update          : {0}".format(len(groups_to_update)))
     print("groups_already_correct : {0}".format(len(groups_already_correct)))
     print("common_campaign_cols   : {0}".format(len(common_campaign_columns)))
@@ -262,7 +271,7 @@ def main():
     print("== CAMPAIGNS ==")
     for campaign_id in all_campaign_ids:
         source_row = source_campaigns.get(campaign_id)
-        target_row = target_campaign_rows.get(campaign_id)
+        target_row = target_campaign_rows.get(campaign_id.upper())
         if source_row is None:
             status = "SOURCE_MISSING"
             name = ""
@@ -280,6 +289,12 @@ def main():
                 campaign_id, status, active, name
             )
         )
+
+    if case_differences:
+        print("")
+        print("CAMPAIGN ID CASE DIFFERENCES:")
+        for source_id, target_id in case_differences:
+            print("  source={0} target={1}".format(source_id, target_id))
 
     if source_only_columns:
         print("")
