@@ -5,12 +5,25 @@ import yaml
 
 
 class SSHSettings(object):
-    def __init__(self, user, port, connect_timeout, password=None, key_file=None):
+    def __init__(
+        self,
+        user,
+        port,
+        connect_timeout,
+        password=None,
+        key_file=None,
+        target_user=None,
+        target_password=None,
+        target_key_file=None,
+    ):
         self.user = user
         self.port = port
         self.connect_timeout = connect_timeout
         self.password = password
         self.key_file = key_file
+        self.target_user = target_user or user
+        self.target_password = target_password
+        self.target_key_file = target_key_file
 
 
 class DBSettings(object):
@@ -48,6 +61,12 @@ def load_config(path="config/infrastructure.yml"):
         connect_timeout=int(ssh_raw.get("connect_timeout", 8)),
         password=os.getenv("CORTIZOVPN_SSH_PASSWORD") or None,
         key_file=os.getenv("CORTIZOVPN_SSH_KEY_FILE") or None,
+        target_user=os.getenv(
+            "CORTIZOVPN_TARGET_SSH_USER",
+            ssh_raw.get("target_user") or ssh_raw.get("user", "root"),
+        ),
+        target_password=os.getenv("CORTIZOVPN_TARGET_SSH_PASSWORD") or None,
+        target_key_file=os.getenv("CORTIZOVPN_TARGET_SSH_KEY_FILE") or None,
     )
 
     db = DBSettings(
