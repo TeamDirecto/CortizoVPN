@@ -2,7 +2,7 @@ import re
 import shlex
 import uuid
 
-from app.ssh import connect_via_jump
+from app.ssh import connect_via_jump, node_ssh_options
 
 
 def _escape_cnf(value):
@@ -44,8 +44,15 @@ def run_readonly_query(config, sql, target_name="master"):
     remote_cnf = None
 
     try:
+        jump_user, jump_password, jump_key_file = node_ssh_options(jump, config)
         jump_client, target_client = connect_via_jump(
-            jump_host, target_host, target_port, config
+            jump_host,
+            target_host,
+            target_port,
+            config,
+            jump_user=jump_user,
+            jump_password=jump_password,
+            jump_key_file=jump_key_file,
         )
 
         remote_cnf = "/tmp/.cortizovpn-{0}.cnf".format(uuid.uuid4().hex)
@@ -161,8 +168,15 @@ def run_write_script(config, sql, target_name="master"):
     remote_cnf = None
 
     try:
+        jump_user, jump_password, jump_key_file = node_ssh_options(jump, config)
         jump_client, target_client = connect_via_jump(
-            jump_host, target_host, target_port, config
+            jump_host,
+            target_host,
+            target_port,
+            config,
+            jump_user=jump_user,
+            jump_password=jump_password,
+            jump_key_file=jump_key_file,
         )
 
         remote_cnf = "/tmp/.cortizovpn-{0}.cnf".format(uuid.uuid4().hex)
