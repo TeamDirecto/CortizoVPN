@@ -2,7 +2,7 @@ import re
 import time
 
 from app.db import run_readonly_query, run_write_script
-from app.ssh import connect_direct
+from app.ssh import connect_direct, node_ssh_options
 
 
 NODE_ORDER = ["dial1", "dial2", "dial3", "dial4"]
@@ -215,7 +215,14 @@ def _sip_reload(config, node_name):
 
     client = None
     try:
-        client = connect_direct(node["wan_ip"], config)
+        node_user, node_password, node_key_file = node_ssh_options(node, config)
+        client = connect_direct(
+            node["wan_ip"],
+            config,
+            username=node_user,
+            password=node_password,
+            key_file=node_key_file,
+        )
         _, stdout, stderr = client.exec_command('asterisk -rx "sip reload"')
         output = stdout.read().decode("utf-8", "replace")
         error = stderr.read().decode("utf-8", "replace").strip()
@@ -245,7 +252,14 @@ def verify_sip_peer(config, node_name, base_extension):
     extension = extension_for_node(config, base_extension, node_name)
     client = None
     try:
-        client = connect_direct(node["wan_ip"], config)
+        node_user, node_password, node_key_file = node_ssh_options(node, config)
+        client = connect_direct(
+            node["wan_ip"],
+            config,
+            username=node_user,
+            password=node_password,
+            key_file=node_key_file,
+        )
         command = 'asterisk -rx "sip show peer {0}"'.format(extension)
         _, stdout, stderr = client.exec_command(command)
         output = stdout.read().decode("utf-8", "replace")
