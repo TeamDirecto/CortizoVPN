@@ -1,5 +1,8 @@
 ssh:
+  # vici97 -> dialer WAN (jump host)
   user: root
+  # dialer -> DB MASTER/SLAVE
+  target_user: kristian.maya
   port: 19600
   connect_timeout: 8
 
