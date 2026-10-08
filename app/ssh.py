@@ -65,7 +65,7 @@ def connect_via_jump(jump_host, target_host, target_port, config):
     target_client = _new_client()
     kwargs = {
         "hostname": target_host,
-        "username": config.ssh.user,
+        "username": config.ssh.target_user,
         "port": target_port,
         "sock": channel,
         "timeout": config.ssh.connect_timeout,
@@ -75,10 +75,10 @@ def connect_via_jump(jump_host, target_host, target_port, config):
         "look_for_keys": True,
     }
 
-    if config.ssh.password:
-        kwargs["password"] = config.ssh.password
-    if config.ssh.key_file:
-        kwargs["key_filename"] = config.ssh.key_file
+    if config.ssh.target_password:
+        kwargs["password"] = config.ssh.target_password
+    if config.ssh.target_key_file:
+        kwargs["key_filename"] = config.ssh.target_key_file
 
     try:
         target_client.connect(**kwargs)
