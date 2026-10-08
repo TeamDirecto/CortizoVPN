@@ -1,7 +1,7 @@
 ssh:
-  # vici97 -> dialer WAN (jump host)
+  # Usuario por defecto. Cada dialer puede sobreescribirlo con ssh_user.
   user: kristian.maya
-  # dialer -> DB MASTER/SLAVE
+  # Segundo salto hacia DB MASTER/SLAVE.
   target_user: kristian.maya
   port: 19600
   connect_timeout: 8
@@ -10,17 +10,25 @@ dialers:
   dial1:
     lan_ip: 10.10.15.10
     wan_ip: 201.132.81.26
+    ssh_user: root
+    ssh_password_env: CORTIZOVPN_DIAL1_SSH_PASSWORD
     enabled: false
     note: "Temporalmente fuera por iptables; dejar preparado para habilitarlo sin cambiar código."
   dial2:
+    ssh_user: kristian.maya
+    ssh_password_env: CORTIZOVPN_DIALER_SSH_PASSWORD
     lan_ip: 10.10.15.11
     wan_ip: 201.132.81.27
     enabled: true
   dial3:
+    ssh_user: kristian.maya
+    ssh_password_env: CORTIZOVPN_DIALER_SSH_PASSWORD
     lan_ip: 10.10.15.12
     wan_ip: 201.132.81.28
     enabled: true
   dial4:
+    ssh_user: kristian.maya
+    ssh_password_env: CORTIZOVPN_DIALER_SSH_PASSWORD
     lan_ip: 10.10.15.13
     wan_ip: 201.132.81.29
     enabled: true
