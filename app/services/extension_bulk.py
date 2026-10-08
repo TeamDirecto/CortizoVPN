@@ -1,7 +1,7 @@
 import re
 
 from app.db import run_readonly_query, run_write_script
-from app.ssh import connect_direct
+from app.ssh import connect_direct, node_ssh_options
 from app.services.extensions import (
     NODE_ORDER,
     TEMPLATE_EXTENSION,
@@ -294,7 +294,14 @@ def _verify_node_peers(config, node_name, expected):
 
     client = None
     try:
-        client = connect_direct(node["wan_ip"], config)
+        node_user, node_password, node_key_file = node_ssh_options(node, config)
+        client = connect_direct(
+            node["wan_ip"],
+            config,
+            username=node_user,
+            password=node_password,
+            key_file=node_key_file,
+        )
         _, stdout, stderr = client.exec_command('asterisk -rx "sip show peers"')
         output = stdout.read().decode("utf-8", "replace")
         error = stderr.read().decode("utf-8", "replace").strip()
