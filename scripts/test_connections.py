@@ -8,7 +8,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from app.config import load_config
-from app.ssh import test_direct, test_via_jump
+from app.ssh import node_ssh_options, test_direct, test_via_jump
 
 
 def main():
@@ -29,7 +29,14 @@ def main():
             continue
 
         host = node["wan_ip"]
-        result = test_direct(host, config)
+        node_user, node_password, node_key_file = node_ssh_options(node, config)
+        result = test_direct(
+            host,
+            config,
+            username=node_user,
+            password=node_password,
+            key_file=node_key_file,
+        )
         state = "OK" if result.ok else "ERROR"
         print(
             "[{0}] {1:6} {2}:{3} -> {4}".format(
@@ -66,7 +73,16 @@ def main():
         target_host = db["host"]
         target_port = int(db.get("port", config.ssh.port))
 
-        result = test_via_jump(jump_host, target_host, target_port, config)
+        jump_user, jump_password, jump_key_file = node_ssh_options(jump, config)
+        result = test_via_jump(
+            jump_host,
+            target_host,
+            target_port,
+            config,
+            jump_user=jump_user,
+            jump_password=jump_password,
+            jump_key_file=jump_key_file,
+        )
         state = "OK" if result.ok else "ERROR"
         print(
             "[{0}] {1:6} {2}:{3} via {4} ({5}) -> {6}".format(
