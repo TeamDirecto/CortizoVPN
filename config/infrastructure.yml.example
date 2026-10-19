@@ -37,11 +37,15 @@ database:
   slave:
     host: 10.10.15.14
     port: 19600
-    jump_host: dial2
+    jump_host: dial1
+    sudo: true
+    sudo_password_env: CORTIZOVPN_TARGET_SSH_PASSWORD
   master:
     host: 10.10.15.15
     port: 19600
-    jump_host: dial2
+    jump_host: dial1
+    sudo: true
+    sudo_password_env: CORTIZOVPN_TARGET_SSH_PASSWORD
 
 extensions:
   # Rango global reservado para Cortizo.
