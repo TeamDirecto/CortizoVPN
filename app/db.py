@@ -1,3 +1,4 @@
+import os
 import re
 import shlex
 import uuid
@@ -7,6 +8,35 @@ from app.ssh import connect_via_jump, node_ssh_options
 
 def _escape_cnf(value):
     return str(value).replace("\\", "\\\\").replace("\n", "\\n")
+
+
+
+
+def _exec_target_command(target_client, command, target, config):
+    if not target.get("sudo", False):
+        return target_client.exec_command(command)
+
+    password_env = target.get("sudo_password_env")
+    sudo_password = (
+        os.getenv(password_env)
+        if password_env
+        else config.ssh.target_password
+    )
+    if not sudo_password:
+        raise RuntimeError(
+            "Falta password sudo para el servidor de BD"
+        )
+
+    sudo_command = "sudo -S -p '' -u root -- sh -lc {0}".format(
+        shlex.quote(command)
+    )
+    stdin, stdout, stderr = target_client.exec_command(
+        sudo_command,
+        get_pty=bool(target.get("sudo_require_tty", False)),
+    )
+    stdin.write(str(sudo_password) + "\n")
+    stdin.flush()
+    return stdin, stdout, stderr
 
 
 def run_readonly_query(config, sql, target_name="master"):
@@ -85,7 +115,9 @@ def run_readonly_query(config, sql, target_name="master"):
             sql=shlex.quote(statement),
         )
 
-        _, stdout, stderr = target_client.exec_command(command)
+        _, stdout, stderr = _exec_target_command(
+            target_client, command, target, config
+        )
         output = stdout.read().decode("utf-8", "replace")
         error = stderr.read().decode("utf-8", "replace").strip()
         status = stdout.channel.recv_exit_status()
@@ -209,7 +241,9 @@ def run_write_script(config, sql, target_name="master"):
             sql=shlex.quote(statement),
         )
 
-        _, stdout, stderr = target_client.exec_command(command)
+        _, stdout, stderr = _exec_target_command(
+            target_client, command, target, config
+        )
         output = stdout.read().decode("utf-8", "replace")
         error = stderr.read().decode("utf-8", "replace").strip()
         status = stdout.channel.recv_exit_status()
