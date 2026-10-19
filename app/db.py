@@ -72,6 +72,7 @@ def run_readonly_query(config, sql, target_name="master"):
     jump_client = None
     target_client = None
     remote_cnf = None
+    remote_sql = None
 
     try:
         jump_user, jump_password, jump_key_file = node_ssh_options(jump, config)
@@ -231,14 +232,25 @@ def run_write_script(config, sql, target_name="master"):
         finally:
             sftp.close()
 
+        remote_sql = "/tmp/.cortizovpn-{0}.sql".format(uuid.uuid4().hex)
+        sftp = target_client.open_sftp()
+        try:
+            with sftp.file(remote_sql, "w") as handle:
+                handle.write(statement)
+                if not statement.endswith("\n"):
+                    handle.write("\n")
+            sftp.chmod(remote_sql, 0o600)
+        finally:
+            sftp.close()
+
         command = (
             "mysql --defaults-extra-file={cnf} "
             "--batch --raw --skip-column-names "
-            "{database} -e {sql}"
+            "{database} < {sqlfile}"
         ).format(
             cnf=shlex.quote(remote_cnf),
             database=shlex.quote(config.db.name),
-            sql=shlex.quote(statement),
+            sqlfile=shlex.quote(remote_sql),
         )
 
         _, stdout, stderr = _exec_target_command(
@@ -254,6 +266,14 @@ def run_write_script(config, sql, target_name="master"):
         return output.strip()
 
     finally:
+        if target_client and remote_sql:
+            try:
+                target_client.exec_command(
+                    "rm -f {0}".format(shlex.quote(remote_sql))
+                )
+            except Exception:
+                pass
+
         if target_client and remote_cnf:
             try:
                 target_client.exec_command(
