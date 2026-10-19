@@ -80,7 +80,17 @@ def target_schema(config):
         "SHOW COLUMNS FROM vicidial_users",
         "master",
     )
-    return [row[0] for row in rows]
+    columns = []
+    auto_increment = set()
+    for row in rows:
+        if not row:
+            continue
+        name = row[0]
+        columns.append(name)
+        extra = str(row[5] or "") if len(row) > 5 else ""
+        if "auto_increment" in extra.lower():
+            auto_increment.add(name)
+    return columns, auto_increment
 
 
 def source_rows_and_schema():
@@ -136,9 +146,12 @@ def verify_target(config, users):
 def main():
     config = load_config()
     source_rows, source_cols = source_rows_and_schema()
-    target_cols = target_schema(config)
+    target_cols, auto_increment_cols = target_schema(config)
 
-    common_cols = [c for c in source_cols if c in target_cols]
+    common_cols = [
+        c for c in source_cols
+        if c in target_cols and c not in auto_increment_cols
+    ]
     source_only = [c for c in source_cols if c not in target_cols]
     target_only = [c for c in target_cols if c not in source_cols]
 
@@ -161,6 +174,9 @@ def main():
     print("already_existing    : {0}".format(len(existing)))
     print("to_create           : {0}".format(len(create_rows)))
     print("common_columns      : {0}".format(len(common_cols)))
+    print("auto_increment_skip : {0}".format(
+        ", ".join(sorted(auto_increment_cols)) if auto_increment_cols else "NONE"
+    ))
     print("source_only_columns : {0}".format(len(source_only)))
     print("target_only_columns : {0}".format(len(target_only)))
     print("blockers            : {0}".format(blockers))
